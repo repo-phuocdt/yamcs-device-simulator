@@ -23,7 +23,18 @@ def main():
         sys.exit(2)
 
     print(f"▶️  TEST_TYPE = {test_type} -> {target}")
-    sys.exit(subprocess.call([sys.executable, target]))
+    # Run the target as a child. On Ctrl+C the SIGINT reaches the child too (same process
+    # group), which shuts itself down gracefully — so the parent just waits for it to exit
+    # instead of dumping a raw KeyboardInterrupt traceback.
+    proc = subprocess.Popen([sys.executable, target])
+    try:
+        proc.wait()
+    except KeyboardInterrupt:
+        try:
+            proc.wait()
+        except KeyboardInterrupt:
+            pass
+    sys.exit(proc.returncode)
 
 
 if __name__ == "__main__":
